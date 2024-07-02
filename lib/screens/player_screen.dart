@@ -5,7 +5,7 @@ class PlayerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('R/a/dio Player'),
+        title: Text('R/a/dio'),
         backgroundColor: Colors.grey[900],
       ),
       body: Padding(
@@ -17,16 +17,16 @@ class PlayerScreen extends StatelessWidget {
               "You're listening to:",
               style: TextStyle(fontSize: 18, color: Colors.grey),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 3),
             Row(
               children: [
                 Text(
-                  'Song Title',
+                  'Hanyuu-Sama',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
                 ),
                 Spacer(),
                 CircleAvatar(
-                  radius: 30,
+                  radius: 50,
                   backgroundImage: NetworkImage('https://via.placeholder.com/60'),
                 ),
               ],
