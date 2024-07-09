@@ -1,6 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 
-class PlayerScreen extends StatelessWidget {
+class PlayerScreen extends StatefulWidget {
+  @override
+  PlayerScreenState createState() => PlayerScreenState();
+}
+
+class PlayerScreenState extends State<PlayerScreen> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool isPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initAudioPlayer();
+  }
+
+  Future<void> _initAudioPlayer() async {
+    await _audioPlayer.setUrl('https://relay0.r-a-d.io/main.mp3');
+    _audioPlayer.playerStateStream.listen((playerState) {
+      setState(() {
+        isPlaying = playerState.playing;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,6 +60,25 @@ class PlayerScreen extends StatelessWidget {
                   backgroundImage: NetworkImage('https://via.placeholder.com/60'),
                 ),
               ],
+            ),
+            SizedBox(height: 20),
+            Expanded(
+              child: Center(
+                child: IconButton(
+                  iconSize: 100,
+                  icon: Icon(
+                    isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                    color: Colors.red,
+                  ),
+                  onPressed: () {
+                    if (isPlaying) {
+                      _audioPlayer.pause();
+                    } else {
+                      _audioPlayer.play();
+                    }
+                  },
+                ),
+              ),
             ),
             // ... rest of your player screen implementation
           ],
