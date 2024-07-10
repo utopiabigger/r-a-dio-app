@@ -56,8 +56,8 @@ class PlayerScreenState extends State<PlayerScreen> {
                 ),
                 Spacer(),
                 CircleAvatar(
-                  radius: 50,
-                  backgroundImage: NetworkImage('https://via.placeholder.com/60'),
+                  radius: 30,
+                  backgroundImage: AssetImage('assets/hanyuu.png'),
                 ),
               ],
             ),
