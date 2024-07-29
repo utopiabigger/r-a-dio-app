@@ -17,12 +17,24 @@ class PlayerScreenState extends State<PlayerScreen> {
   }
 
   Future<void> _initAudioPlayer() async {
-    await _audioPlayer.setUrl('https://relay0.r-a-d.io/main.mp3');
-    _audioPlayer.playerStateStream.listen((playerState) {
-      setState(() {
-        isPlaying = playerState.playing;
+    try {
+      await _audioPlayer.setUrl('https://relay0.r-a-d.io/main.mp3');
+      _audioPlayer.playerStateStream.listen((playerState) {
+        setState(() {
+          isPlaying = playerState.playing;
+        });
       });
-    });
+
+      // Handle errors
+      _audioPlayer.playbackEventStream.listen((event) {}, onError: (Object e, StackTrace stackTrace) {
+        print('A stream error occurred: $e');
+      });
+
+      // Request audio focus
+      await _audioPlayer.setAudioSource(AudioSource.uri(Uri.parse('https://relay0.r-a-d.io/main.mp3')));
+    } catch (e) {
+      print("Error initializing audio player: $e");
+    }
   }
 
   @override
@@ -35,7 +47,11 @@ class PlayerScreenState extends State<PlayerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('R/a/dio'),
+        leading: Padding(
+          padding: EdgeInsets.all(8.0),
+          child: Image.asset('assets/icon.png'),
+        ),
+        title: Text('r/a/dio'),
         backgroundColor: Colors.grey[900],
       ),
       body: Padding(
@@ -87,4 +103,16 @@ class PlayerScreenState extends State<PlayerScreen> {
       backgroundColor: Colors.black,
     );
   }
+}
+
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      leading: Image.asset('assets/icon.png'), // Add this line
+      title: Text('r/a/dio'),
+      backgroundColor: Colors.grey[900],
+    ),
+    // ... rest of your build method
+  );
 }
