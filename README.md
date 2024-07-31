@@ -22,7 +22,7 @@ r/a/dio is a simple, Android-focused Flutter application that streams music from
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/radio_app.git
+   git clone https://github.com/TenseiCho/radio_app
    ```
 2. Navigate to the project directory:
    ```
