@@ -1,20 +1,52 @@
-# radio_app
+# r/a/dio App
 
-A new Flutter project.
+## Description
+
+r/a/dio is a simple, Android-focused Flutter application that streams music from the r/a/dio online radio station. This app allows users to listen to the radio stream with basic play/pause functionality and displays information about the current DJ.
+
+## Features
+
+- Stream r/a/dio content
+- Play/Pause functionality
+- Display current DJ information
+- Dark theme UI
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+### Prerequisites
 
-A few resources to get you started if this is your first Flutter project:
+- Flutter SDK (^3.1.1)
+- Android development environment set up
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### Installation
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/radio_app.git
+   ```
+2. Navigate to the project directory:
+   ```
+   cd radio_app
+   ```
+3. Get the dependencies:
+   ```
+   flutter pub get
+   ```
+4. Run the app:
+   ```
+   flutter run
+   ```
 
-## Notes
+## Development
 
-- Pixel 3A works
+This project is currently focused on Android development. While Flutter allows for cross-platform development, other platforms (iOS, Web, Windows) are not actively supported in this project at this time.
+
+## Dependencies
+
+- just_audio: ^0.9.34
+- english_words: ^4.0.0
+- provider: ^6.0.0
+
+## Version
+
+Current version: 0.1.1
