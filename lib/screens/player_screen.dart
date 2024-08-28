@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'dart:async';
+import 'package:radio_app/services/radio_api_service.dart';
 
 class PlayerScreen extends StatefulWidget {
   @override
@@ -8,12 +10,18 @@ class PlayerScreen extends StatefulWidget {
 
 class PlayerScreenState extends State<PlayerScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final RadioApiService apiService = RadioApiService();
   bool isPlaying = false;
+  String currentArtist = 'Loading...';
+  String currentTitle = 'Loading...';
+  Timer? updateTimer;
 
   @override
   void initState() {
     super.initState();
     _initAudioPlayer();
+    fetchTrackInfo();
+    startPeriodicUpdates();
   }
 
   Future<void> _initAudioPlayer() async {
@@ -37,8 +45,31 @@ class PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
+  void startPeriodicUpdates() {
+    updateTimer = Timer.periodic(Duration(seconds: 30), (timer) {
+      fetchTrackInfo();
+    });
+  }
+
+  Future<void> fetchTrackInfo() async {
+    try {
+      final trackInfo = await apiService.getCurrentTrack();
+      setState(() {
+        currentArtist = trackInfo['artist'];
+        currentTitle = trackInfo['title'];
+      });
+    } catch (e) {
+      print('Error fetching track info: $e');
+      setState(() {
+        currentArtist = 'Unable to load';
+        currentTitle = 'Unable to load';
+      });
+    }
+  }
+
   @override
   void dispose() {
+    updateTimer?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -60,22 +91,18 @@ class PlayerScreenState extends State<PlayerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "You're listening to:",
+              "Now Playing:",
               style: TextStyle(fontSize: 18, color: Colors.grey),
             ),
             SizedBox(height: 3),
-            Row(
-              children: [
-                Text(
-                  'Hanyuu-Sama',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
-                ),
-                Spacer(),
-                CircleAvatar(
-                  radius: 30,
-                  backgroundImage: AssetImage('assets/hanyuu.png'),
-                ),
-              ],
+            Text(
+              currentTitle,
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
+            ),
+            SizedBox(height: 3),
+            Text(
+              currentArtist,
+              style: TextStyle(fontSize: 18, color: Colors.white),
             ),
             SizedBox(height: 20),
             Expanded(
@@ -103,16 +130,4 @@ class PlayerScreenState extends State<PlayerScreen> {
       backgroundColor: Colors.black,
     );
   }
-}
-
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      leading: Image.asset('assets/icon.png'), // Add this line
-      title: Text('r/a/dio'),
-      backgroundColor: Colors.grey[900],
-    ),
-    // ... rest of your build method
-  );
 }
