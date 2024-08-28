@@ -14,13 +14,16 @@ class PlayerScreenState extends State<PlayerScreen> {
   bool isPlaying = false;
   String currentArtist = 'Loading...';
   String currentTitle = 'Loading...';
+  String djName = 'Loading...';
+  int listenerCount = 0;
   Timer? updateTimer;
+  String djImageUrl = '';
 
   @override
   void initState() {
     super.initState();
     _initAudioPlayer();
-    fetchTrackInfo();
+    fetchRadioInfo();
     startPeriodicUpdates();
   }
 
@@ -47,22 +50,28 @@ class PlayerScreenState extends State<PlayerScreen> {
 
   void startPeriodicUpdates() {
     updateTimer = Timer.periodic(Duration(seconds: 30), (timer) {
-      fetchTrackInfo();
+      fetchRadioInfo();
     });
   }
 
-  Future<void> fetchTrackInfo() async {
+  Future<void> fetchRadioInfo() async {
     try {
-      final trackInfo = await apiService.getCurrentTrack();
+      final radioInfo = await apiService.getRadioInfo();
       setState(() {
-        currentArtist = trackInfo['artist'];
-        currentTitle = trackInfo['title'];
+        currentArtist = radioInfo['artist'];
+        currentTitle = radioInfo['title'];
+        djName = radioInfo['dj_name'];
+        listenerCount = radioInfo['listener_count'];
+        djImageUrl = radioInfo['dj_image_url'];
       });
     } catch (e) {
-      print('Error fetching track info: $e');
+      print('Error fetching radio info: $e');
       setState(() {
         currentArtist = 'Unable to load';
         currentTitle = 'Unable to load';
+        djName = 'Unable to load';
+        listenerCount = 0;
+        djImageUrl = '';
       });
     }
   }
@@ -85,47 +94,92 @@ class PlayerScreenState extends State<PlayerScreen> {
         title: Text('r/a/dio'),
         backgroundColor: Colors.grey[900],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Now Playing:",
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+      body: Column(
+        children: [
+          Container(
+            margin: EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.red.shade800, Colors.red.shade600],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(15),
             ),
-            SizedBox(height: 3),
-            Text(
-              currentTitle,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
-            ),
-            SizedBox(height: 3),
-            Text(
-              currentArtist,
-              style: TextStyle(fontSize: 18, color: Colors.white),
-            ),
-            SizedBox(height: 20),
-            Expanded(
-              child: Center(
-                child: IconButton(
-                  iconSize: 100,
-                  icon: Icon(
-                    isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                    color: Colors.red,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundImage: NetworkImage(djImageUrl),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        "DJ: $djName",
+                        style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
-                  onPressed: () {
-                    if (isPlaying) {
-                      _audioPlayer.pause();
-                    } else {
-                      _audioPlayer.play();
-                    }
-                  },
-                ),
+                  Row(
+                    children: [
+                      Icon(Icons.headset, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text(
+                        "$listenerCount",
+                        style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            // ... rest of your player screen implementation
-          ],
-        ),
+          ),
+          Expanded(
+            child: Center(
+              child: IconButton(
+                iconSize: 100,
+                icon: Icon(
+                  isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                  color: Colors.red,
+                ),
+                onPressed: () {
+                  if (isPlaying) {
+                    _audioPlayer.pause();
+                  } else {
+                    _audioPlayer.play();
+                  }
+                },
+              ),
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.all(16.0),
+            color: Colors.grey[900],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Now Playing:",
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  currentTitle,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  currentArtist,
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
       backgroundColor: Colors.black,
     );

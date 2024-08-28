@@ -10,6 +10,9 @@
 .svn/
 migrate_working_dir/
 
+# Ignore radio.png
+radio.png
+
 # IntelliJ related
 *.iml
 *.ipr
