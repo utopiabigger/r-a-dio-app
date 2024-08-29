@@ -92,18 +92,14 @@ class PlayerScreenState extends State<PlayerScreen> {
           child: Image.asset('assets/icon.png'),
         ),
         title: Text('r/a/dio'),
-        backgroundColor: Colors.grey[900],
+        backgroundColor: Color(0xFF1A1A1A), // Slightly lighter than background for contrast
       ),
       body: Column(
         children: [
           Container(
             margin: EdgeInsets.all(16.0),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.red.shade800, Colors.red.shade600],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: Color(0xFF303030), // New color for the DJ banner
               borderRadius: BorderRadius.circular(15),
             ),
             child: Padding(
@@ -140,25 +136,24 @@ class PlayerScreenState extends State<PlayerScreen> {
           ),
           Expanded(
             child: Center(
-              child: IconButton(
-                iconSize: 100,
-                icon: Icon(
-                  isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                  color: Colors.red,
-                ),
-                onPressed: () {
+              child: GestureDetector(
+                onTap: () {
                   if (isPlaying) {
                     _audioPlayer.pause();
                   } else {
                     _audioPlayer.play();
                   }
                 },
+                child: CustomPaint(
+                  size: Size(100, 100), // Increased from 80 to 100
+                  painter: PlayPausePainter(isPlaying: isPlaying),
+                ),
               ),
             ),
           ),
           Container(
             padding: EdgeInsets.all(16.0),
-            color: Colors.grey[900],
+            color: Color(0xFF1A1A1A), // Slightly lighter than background for contrast
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -181,7 +176,37 @@ class PlayerScreenState extends State<PlayerScreen> {
           ),
         ],
       ),
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF111111), // New background color
     );
   }
+}
+
+class PlayPausePainter extends CustomPainter {
+  final bool isPlaying;
+
+  PlayPausePainter({required this.isPlaying});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white // Changed from Colors.red to Colors.white
+      ..style = PaintingStyle.fill;
+
+    if (isPlaying) {
+      // Draw pause icon
+      canvas.drawRect(Rect.fromLTWH(size.width * 0.3, size.height * 0.25, size.width * 0.15, size.height * 0.5), paint);
+      canvas.drawRect(Rect.fromLTWH(size.width * 0.55, size.height * 0.25, size.width * 0.15, size.height * 0.5), paint);
+    } else {
+      // Draw play icon
+      final path = Path();
+      path.moveTo(size.width * 0.3, size.height * 0.25);
+      path.lineTo(size.width * 0.3, size.height * 0.75);
+      path.lineTo(size.width * 0.7, size.height * 0.5);
+      path.close();
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
