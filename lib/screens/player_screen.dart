@@ -16,15 +16,36 @@ class PlayerScreenState extends State<PlayerScreen> {
   String currentTitle = 'Loading...';
   String djName = 'Loading...';
   int listenerCount = 0;
-  Timer? updateTimer;
   String djImageUrl = '';
+  Duration? currentTrackDuration;
+  String lastTrackId = '';
+  StreamSubscription<Duration>? _positionSubscription;
+  bool _isNearEndOfTrack = false;
+  Timer? _periodicUpdateTimer;
+  DateTime? currentTrackStartTime;
+  Timer? _elapsedTimeTimer;
 
   @override
   void initState() {
     super.initState();
     _initAudioPlayer();
     fetchRadioInfo();
-    startPeriodicUpdates();
+    _startPeriodicUpdates();
+    _startElapsedTimeTimer();
+  }
+
+  void _startPeriodicUpdates() {
+    _periodicUpdateTimer = Timer.periodic(Duration(seconds: 30), (timer) {
+      fetchRadioInfo();
+    });
+  }
+
+  void _startElapsedTimeTimer() {
+    _elapsedTimeTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        // This will trigger a rebuild of the duration display
+      });
+    });
   }
 
   Future<void> _initAudioPlayer() async {
@@ -33,6 +54,20 @@ class PlayerScreenState extends State<PlayerScreen> {
       _audioPlayer.playerStateStream.listen((playerState) {
         setState(() {
           isPlaying = playerState.playing;
+        });
+      });
+
+      _positionSubscription = _audioPlayer.positionStream.listen((position) {
+        if (currentTrackDuration != null) {
+          if (position >= currentTrackDuration! - Duration(seconds: 5) && !_isNearEndOfTrack) {
+            _isNearEndOfTrack = true;
+            fetchRadioInfo();
+          } else if (position < currentTrackDuration! - Duration(seconds: 5)) {
+            _isNearEndOfTrack = false;
+          }
+        }
+        setState(() {
+          // Update UI
         });
       });
 
@@ -48,21 +83,23 @@ class PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  void startPeriodicUpdates() {
-    updateTimer = Timer.periodic(Duration(seconds: 30), (timer) {
-      fetchRadioInfo();
-    });
-  }
-
   Future<void> fetchRadioInfo() async {
     try {
       final radioInfo = await apiService.getRadioInfo();
+      final newTrackId = '${radioInfo['artist']}-${radioInfo['title']}';
+
       setState(() {
         currentArtist = radioInfo['artist'];
         currentTitle = radioInfo['title'];
         djName = radioInfo['dj_name'];
         listenerCount = radioInfo['listener_count'];
         djImageUrl = radioInfo['dj_image_url'];
+        currentTrackDuration = Duration(seconds: radioInfo['duration'] ?? 0);
+
+        if (newTrackId != lastTrackId) {
+          lastTrackId = newTrackId;
+          currentTrackStartTime = DateTime.fromMillisecondsSinceEpoch(radioInfo['start_time'] * 1000);
+        }
       });
     } catch (e) {
       print('Error fetching radio info: $e');
@@ -72,13 +109,35 @@ class PlayerScreenState extends State<PlayerScreen> {
         djName = 'Unable to load';
         listenerCount = 0;
         djImageUrl = '';
+        currentTrackDuration = null;
+        lastTrackId = '';
       });
     }
   }
 
+  Duration _getElapsedTime() {
+    if (currentTrackStartTime == null) return Duration.zero;
+    return DateTime.now().difference(currentTrackStartTime!);
+  }
+
+  double _calculateProgress() {
+    if (currentTrackStartTime == null || currentTrackDuration == null) return 0.0;
+    final elapsed = _getElapsedTime();
+    return (elapsed.inMilliseconds / currentTrackDuration!.inMilliseconds).clamp(0.0, 1.0);
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$twoDigitMinutes:$twoDigitSeconds";
+  }
+
   @override
   void dispose() {
-    updateTimer?.cancel();
+    _positionSubscription?.cancel();
+    _periodicUpdateTimer?.cancel();
+    _elapsedTimeTimer?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -136,18 +195,41 @@ class PlayerScreenState extends State<PlayerScreen> {
           ),
           Expanded(
             child: Center(
-              child: GestureDetector(
-                onTap: () {
-                  if (isPlaying) {
-                    _audioPlayer.pause();
-                  } else {
-                    _audioPlayer.play();
-                  }
-                },
-                child: CustomPaint(
-                  size: Size(100, 100), // Increased from 80 to 100
-                  painter: PlayPausePainter(isPlaying: isPlaying),
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      if (isPlaying) {
+                        _audioPlayer.pause();
+                      } else {
+                        _audioPlayer.play();
+                      }
+                    },
+                    child: CustomPaint(
+                      size: Size(100, 100), // Increased from 80 to 100
+                      painter: PlayPausePainter(isPlaying: isPlaying),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    child: Column(
+                      children: [
+                        LinearProgressIndicator(
+                          value: _calculateProgress(),
+                          backgroundColor: Colors.grey[700],
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          '${_formatDuration(_getElapsedTime())} / ${_formatDuration(currentTrackDuration ?? Duration.zero)}',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

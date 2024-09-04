@@ -12,11 +12,16 @@ class RadioApiService {
       final np = main['np'];
       final parts = np.split(' - ');
       
-      // Handle potential null or empty DJ image
       final djImagePath = main['dj']['djimage'];
       final djImageUrl = djImagePath != null && djImagePath.isNotEmpty
           ? 'https://r-a-d.io/api/dj-image/${Uri.encodeComponent(djImagePath)}'
           : '';
+
+      // Calculate duration in seconds
+      int duration = 0;
+      if (main['end_time'] != null && main['start_time'] != null) {
+        duration = main['end_time'] - main['start_time'];
+      }
 
       return {
         'artist': parts.isNotEmpty ? parts[0] : '',
@@ -24,6 +29,8 @@ class RadioApiService {
         'dj_name': main['dj']['djname'] ?? 'Unknown DJ',
         'listener_count': main['listeners'] ?? 0,
         'dj_image_url': djImageUrl,
+        'duration': duration,
+        'start_time': main['start_time'], // Add this line
       };
     } else {
       throw Exception('Failed to load radio info');
