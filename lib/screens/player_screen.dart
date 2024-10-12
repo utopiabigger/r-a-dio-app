@@ -20,8 +20,9 @@ class PlayerScreenState extends State<PlayerScreen> {
   Duration? currentTrackDuration;
   String lastTrackId = '';
   StreamSubscription<Duration>? _positionSubscription;
-  bool _isNearEndOfTrack = false;
   Timer? _periodicUpdateTimer;
+  Timer? _frequentUpdateTimer;
+  bool _isNearEndOfTrack = false;
   DateTime? currentTrackStartTime;
   Timer? _elapsedTimeTimer;
 
@@ -35,9 +36,21 @@ class PlayerScreenState extends State<PlayerScreen> {
   }
 
   void _startPeriodicUpdates() {
-    _periodicUpdateTimer = Timer.periodic(Duration(seconds: 30), (timer) {
+    _periodicUpdateTimer = Timer.periodic(Duration(seconds: 10), (timer) {
       fetchRadioInfo();
     });
+  }
+
+  void _startFrequentUpdates() {
+    _frequentUpdateTimer?.cancel();
+    _frequentUpdateTimer = Timer.periodic(Duration(seconds: 5), (timer) {
+      fetchRadioInfo();
+    });
+  }
+
+  void _stopFrequentUpdates() {
+    _frequentUpdateTimer?.cancel();
+    _frequentUpdateTimer = null;
   }
 
   void _startElapsedTimeTimer() {
@@ -59,11 +72,13 @@ class PlayerScreenState extends State<PlayerScreen> {
 
       _positionSubscription = _audioPlayer.positionStream.listen((position) {
         if (currentTrackDuration != null) {
-          if (position >= currentTrackDuration! - Duration(seconds: 5) && !_isNearEndOfTrack) {
+          final remainingTime = currentTrackDuration! - position;
+          if (remainingTime <= Duration(minutes: 1) && !_isNearEndOfTrack) {
             _isNearEndOfTrack = true;
-            fetchRadioInfo();
-          } else if (position < currentTrackDuration! - Duration(seconds: 5)) {
+            _startFrequentUpdates();
+          } else if (remainingTime > Duration(minutes: 1) && _isNearEndOfTrack) {
             _isNearEndOfTrack = false;
+            _stopFrequentUpdates();
           }
         }
         setState(() {
@@ -99,6 +114,8 @@ class PlayerScreenState extends State<PlayerScreen> {
         if (newTrackId != lastTrackId) {
           lastTrackId = newTrackId;
           currentTrackStartTime = DateTime.fromMillisecondsSinceEpoch(radioInfo['start_time'] * 1000);
+          _isNearEndOfTrack = false;
+          _stopFrequentUpdates();
         }
       });
     } catch (e) {
@@ -137,6 +154,7 @@ class PlayerScreenState extends State<PlayerScreen> {
   void dispose() {
     _positionSubscription?.cancel();
     _periodicUpdateTimer?.cancel();
+    _frequentUpdateTimer?.cancel();
     _elapsedTimeTimer?.cancel();
     _audioPlayer.dispose();
     super.dispose();
@@ -151,53 +169,81 @@ class PlayerScreenState extends State<PlayerScreen> {
           child: Image.asset('assets/icon.png'),
         ),
         title: Text('r/a/dio'),
-        backgroundColor: Color(0xFF1A1A1A), // Slightly lighter than background for contrast
+        backgroundColor: Color(0xFF1A1A1A),
       ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Container(
-                margin: EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: Color(0xFF303030), // New color for the DJ banner
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundImage: NetworkImage(djImageUrl),
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            "DJ: $djName",
-                            style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Icon(Icons.headset, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text(
-                            "$listenerCount",
-                            style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+      body: Padding(
+        padding: EdgeInsets.only(top: 16),
+        child: Column(
+          children: [
+            SizedBox(height: 20),
+            // DJ information bar
+            Container(
+              width: double.infinity,
+              height: 110, // Increased from 100 to 110 to accommodate the overflow
+              decoration: BoxDecoration(
+                color: Color(0xFF303030),
               ),
-              Expanded(
-                child: Center(
-                  child: Column(
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                "You're listening to:",
+                                style: TextStyle(fontSize: 16, color: Colors.grey),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                djName,
+                                style: TextStyle(fontSize: 18, color: Colors.red, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                "Listeners: $listenerCount",
+                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 80), // Space for the image
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    top: -10, // Adjusted from -15 to -10
+                    child: Container(
+                      width: 110, // Reduced from 120 to 110
+                      height: 110, // Reduced from 120 to 110
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        image: DecorationImage(
+                          fit: BoxFit.cover,
+                          image: NetworkImage(djImageUrl),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Main content
+            Expanded(
+              child: Stack(
+                children: [
+                  // Player controls and progress bar
+                  Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       GestureDetector(
@@ -209,7 +255,7 @@ class PlayerScreenState extends State<PlayerScreen> {
                           }
                         },
                         child: CustomPaint(
-                          size: Size(100, 100), // Increased from 80 to 100
+                          size: Size(100, 100),
                           painter: PlayPausePainter(isPlaying: isPlaying),
                         ),
                       ),
@@ -233,48 +279,49 @@ class PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ],
                   ),
-                ),
-              ),
-            ],
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SafeArea(
-              child: Container(
-                padding: EdgeInsets.all(16.0),
-                color: Color(0xFF1A1A1A),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Now Playing:",
-                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                  // Now playing section
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: SafeArea(
+                      child: Container(
+                        padding: EdgeInsets.all(16.0),
+                        color: Color(0xFF1A1A1A),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Now Playing:",
+                              style: TextStyle(fontSize: 18, color: Colors.grey),
+                            ),
+                            SizedBox(height: 3),
+                            Text(
+                              currentTitle,
+                              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 3),
+                            Text(
+                              currentArtist,
+                              style: TextStyle(fontSize: 18, color: Colors.white),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    SizedBox(height: 3),
-                    Text(
-                      currentTitle,
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      currentArtist,
-                      style: TextStyle(fontSize: 18, color: Colors.white),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-      backgroundColor: Color(0xFF111111), // New background color
+      backgroundColor: Color(0xFF111111),
     );
   }
 }
@@ -287,7 +334,7 @@ class PlayPausePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white // Changed from Colors.red to Colors.white
+      ..color = Colors.white
       ..style = PaintingStyle.fill;
 
     if (isPlaying) {
