@@ -153,107 +153,123 @@ class PlayerScreenState extends State<PlayerScreen> {
         title: Text('r/a/dio'),
         backgroundColor: Color(0xFF1A1A1A), // Slightly lighter than background for contrast
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Container(
-            margin: EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: Color(0xFF303030), // New color for the DJ banner
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
+          Column(
+            children: [
+              Container(
+                margin: EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Color(0xFF303030), // New color for the DJ banner
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundImage: NetworkImage(djImageUrl),
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundImage: NetworkImage(djImageUrl),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            "DJ: $djName",
+                            style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 8),
-                      Text(
-                        "DJ: $djName",
-                        style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                      Row(
+                        children: [
+                          Icon(Icons.headset, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text(
+                            "$listenerCount",
+                            style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  Row(
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.headset, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text(
-                        "$listenerCount",
-                        style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                      GestureDetector(
+                        onTap: () {
+                          if (isPlaying) {
+                            _audioPlayer.pause();
+                          } else {
+                            _audioPlayer.play();
+                          }
+                        },
+                        child: CustomPaint(
+                          size: Size(100, 100), // Increased from 80 to 100
+                          painter: PlayPausePainter(isPlaying: isPlaying),
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Container(
+                        width: MediaQuery.of(context).size.width * 0.8,
+                        child: Column(
+                          children: [
+                            LinearProgressIndicator(
+                              value: _calculateProgress(),
+                              backgroundColor: Colors.grey[700],
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              '${_formatDuration(_getElapsedTime())} / ${_formatDuration(currentTrackDuration ?? Duration.zero)}',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      if (isPlaying) {
-                        _audioPlayer.pause();
-                      } else {
-                        _audioPlayer.play();
-                      }
-                    },
-                    child: CustomPaint(
-                      size: Size(100, 100), // Increased from 80 to 100
-                      painter: PlayPausePainter(isPlaying: isPlaying),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              child: Container(
+                padding: EdgeInsets.all(16.0),
+                color: Color(0xFF1A1A1A),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Now Playing:",
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
                     ),
-                  ),
-                  SizedBox(height: 20),
-                  Container(
-                    width: MediaQuery.of(context).size.width * 0.8,
-                    child: Column(
-                      children: [
-                        LinearProgressIndicator(
-                          value: _calculateProgress(),
-                          backgroundColor: Colors.grey[700],
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          '${_formatDuration(_getElapsedTime())} / ${_formatDuration(currentTrackDuration ?? Duration.zero)}',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
+                    SizedBox(height: 3),
+                    Text(
+                      currentTitle,
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                    SizedBox(height: 3),
+                    Text(
+                      currentArtist,
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.all(16.0),
-            color: Color(0xFF1A1A1A), // Slightly lighter than background for contrast
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Now Playing:",
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  currentTitle,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  currentArtist,
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
-              ],
             ),
           ),
         ],
