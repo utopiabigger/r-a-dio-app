@@ -242,39 +242,47 @@ class PlayerScreenState extends State<PlayerScreen> {
             Expanded(
               child: Stack(
                 children: [
-                  // Player controls and progress bar
                   Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          if (isPlaying) {
-                            _audioPlayer.pause();
-                          } else {
-                            _audioPlayer.play();
-                          }
-                        },
-                        child: CustomPaint(
-                          size: Size(100, 100),
-                          painter: PlayPausePainter(isPlaying: isPlaying),
+                      // Play/Pause button
+                      Padding(
+                        padding: EdgeInsets.only(top: 140), // Increased from 40 to 60
+                        child: GestureDetector(
+                          onTap: () {
+                            if (isPlaying) {
+                              _audioPlayer.pause();
+                            } else {
+                              _audioPlayer.play();
+                            }
+                          },
+                          child: CustomPaint(
+                            size: Size(100, 100),
+                            painter: PlayPausePainter(isPlaying: isPlaying),
+                          ),
                         ),
                       ),
-                      SizedBox(height: 20),
-                      Container(
-                        width: MediaQuery.of(context).size.width * 0.8,
-                        child: Column(
-                          children: [
-                            LinearProgressIndicator(
-                              value: _calculateProgress(),
-                              backgroundColor: Colors.grey[700],
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              '${_formatDuration(_getElapsedTime())} / ${_formatDuration(currentTrackDuration ?? Duration.zero)}',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ],
+                      // Spacer to push duration to bottom
+                      Spacer(),
+                      // Duration and progress bar
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 120),
+                        child: Container(
+                          width: MediaQuery.of(context).size.width * 0.8,
+                          child: Column(
+                            children: [
+                              LinearProgressIndicator(
+                                value: _calculateProgress(),
+                                backgroundColor: Colors.grey[700],
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                '${_formatDuration(_getElapsedTime())} / ${_formatDuration(currentTrackDuration ?? Duration.zero)}',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
