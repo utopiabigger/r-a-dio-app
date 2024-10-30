@@ -50,3 +50,4 @@ This project is currently focused on Android development. While Flutter allows f
 ## Version
 
 Current version: 0.1.3
+Next version: 0.1.4
