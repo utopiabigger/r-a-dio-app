@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:http/http.dart' as http;
 
 class RadioApiService {
@@ -7,7 +8,8 @@ class RadioApiService {
   Future<Map<String, dynamic>> getRadioInfo() async {
     final response = await http.get(Uri.parse(apiUrl));
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+      // Ensure proper UTF-8 decoding
+      final data = json.decode(utf8.decode(response.bodyBytes));
       final main = data['main'];
       final np = main['np'];
       final parts = np.split(' - ');
