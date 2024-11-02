@@ -187,7 +187,7 @@ class PlayerScreenState extends State<PlayerScreen> {
                 clipBehavior: Clip.none,
                 children: [
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -276,24 +276,57 @@ class PlayerScreenState extends State<PlayerScreen> {
                         ),
                       ),
                       Spacer(),
-                      // Modified duration bar section
+                      // Track info and duration bar section
                       Padding(
-                        padding: EdgeInsets.only(bottom: 130), // Increased from 125 to 130
+                        padding: EdgeInsets.only(bottom: 20),
                         child: Column(
                           children: [
-                            // Progress bar first
+                            // Track info with horizontal scroll
+                            Container(
+                              width: MediaQuery.of(context).size.width,
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: Column(
+                                children: [
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Text(
+                                      currentTitle,
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red,
+                                        fontFamily: 'NotoSans',
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Text(
+                                      currentArtist,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.white,
+                                        fontFamily: 'NotoSans',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Progress bar
                             Container(
                               width: MediaQuery.of(context).size.width,
                               padding: EdgeInsets.symmetric(horizontal: 16),
                               child: LinearProgressIndicator(
                                 value: _calculateProgress(),
                                 backgroundColor: Colors.grey[700],
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue), // Changed to blue
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                                 minHeight: 3,
                               ),
                             ),
-                            SizedBox(height: 5), // Small gap between progress bar and times
-                            // Duration text row below
+                            SizedBox(height: 5),
+                            // Duration text row
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 16),
                               child: Row(
@@ -301,11 +334,17 @@ class PlayerScreenState extends State<PlayerScreen> {
                                 children: [
                                   Text(
                                     _formatDuration(_getElapsedTime()),
-                                    style: TextStyle(color: Colors.white, fontSize: 12),
+                                    style: TextStyle(
+                                      color: Color(0xFF828282),
+                                      fontSize: 12
+                                    ),
                                   ),
                                   Text(
                                     _formatDuration(currentTrackDuration ?? Duration.zero),
-                                    style: TextStyle(color: Colors.white, fontSize: 12),
+                                    style: TextStyle(
+                                      color: Color(0xFF828282),
+                                      fontSize: 12
+                                    ),
                                   ),
                                 ],
                               ),
@@ -314,51 +353,6 @@ class PlayerScreenState extends State<PlayerScreen> {
                         ),
                       ),
                     ],
-                  ),
-                  // Now playing section
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: SafeArea(
-                      child: Container(
-                        padding: EdgeInsets.all(16.0),
-                        color: Color(0xFF1A1A1A),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Now Playing:",
-                              style: TextStyle(fontSize: 18, color: Colors.grey),
-                            ),
-                            SizedBox(height: 3),
-                            Text(
-                              currentTitle,
-                              style: TextStyle(
-                                fontSize: 24, 
-                                fontWeight: FontWeight.bold, 
-                                color: Colors.red,
-                                fontFamily: 'NotoSans',
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: 3),
-                            Text(
-                              currentArtist,
-                              style: TextStyle(
-                                fontSize: 18, 
-                                color: Colors.white,
-                                fontFamily: 'NotoSans',
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),
