@@ -260,7 +260,7 @@ class PlayerScreenState extends State<PlayerScreen> {
                     children: [
                       // Play/Pause button
                       Padding(
-                        padding: EdgeInsets.only(top: 140),
+                        padding: EdgeInsets.only(top: 200),
                         child: GestureDetector(
                           onTap: () {
                             if (isPlaying) {
