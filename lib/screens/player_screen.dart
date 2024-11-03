@@ -54,7 +54,7 @@ class PlayerScreenState extends State<PlayerScreen> {
   }
 
   void _startElapsedTimeTimer() {
-    _elapsedTimeTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+    _elapsedTimeTimer = Timer.periodic(Duration(milliseconds: 500), (timer) {
       setState(() {
         // This will trigger a rebuild of the duration display
       });
@@ -187,7 +187,7 @@ class PlayerScreenState extends State<PlayerScreen> {
                 clipBehavior: Clip.none,
                 children: [
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: EdgeInsets.symmetric(horizontal: 13.0),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -201,11 +201,11 @@ class PlayerScreenState extends State<PlayerScreen> {
                                 style: TextStyle(
                                   fontSize: 16, 
                                   color: Colors.grey,
-                                  fontWeight: FontWeight.w500, // Semi-bold
+                                  fontWeight: FontWeight.w500,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              SizedBox(height: 2), // Reduced spacing
+                              SizedBox(height: 2),
                               Text(
                                 djName,
                                 style: TextStyle(
@@ -216,11 +216,11 @@ class PlayerScreenState extends State<PlayerScreen> {
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              SizedBox(height: 2), // Reduced spacing
+                              SizedBox(height: 2),
                               Text(
                                 "Listeners: $listenerCount",
                                 style: TextStyle(
-                                  fontSize: 9, // Reduced from 13 to 9
+                                  fontSize: 9,
                                   color: Colors.grey,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -234,11 +234,11 @@ class PlayerScreenState extends State<PlayerScreen> {
                     ),
                   ),
                   Positioned(
-                    right: 0,
+                    right: 3,
                     top: -15,
                     child: Container(
-                      width: 120, // Increased from 110 to 120
-                      height: 120, // Increased from 110 to 120
+                      width: 120,
+                      height: 120,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         image: DecorationImage(
@@ -322,7 +322,7 @@ class PlayerScreenState extends State<PlayerScreen> {
                                 value: _calculateProgress(),
                                 backgroundColor: Colors.grey[700],
                                 valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                                minHeight: 3,
+                                minHeight: 5,
                               ),
                             ),
                             SizedBox(height: 5),
