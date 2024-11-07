@@ -2,6 +2,127 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'dart:async';
 import 'package:radio_app/services/radio_api_service.dart';
+import 'package:audio_service/audio_service.dart';
+
+class AudioPlayerHandler extends BaseAudioHandler {
+  final _player = AudioPlayer();
+  final RadioApiService _apiService = RadioApiService();
+  Timer? _periodicUpdateTimer;
+  Timer? _elapsedTimeTimer;
+  final _playerScreenState;
+
+  AudioPlayerHandler(this._playerScreenState) {
+    _player.playbackEventStream.listen(_broadcastState);
+    _setupPeriodicUpdates();
+    _setupPlaybackStateListener();
+  }
+
+  void _setupPlaybackStateListener() {
+    _player.playerStateStream.listen((playerState) {
+      _playerScreenState.setState(() {
+        _playerScreenState.isPlaying = playerState.playing;
+      });
+    });
+  }
+
+  void _setupPeriodicUpdates() {
+    // More frequent updates for metadata
+    _periodicUpdateTimer = Timer.periodic(Duration(seconds: 2), (timer) async {
+      await _updateMetadata();
+    });
+
+    // Very frequent updates for elapsed time
+    _elapsedTimeTimer = Timer.periodic(Duration(milliseconds: 500), (timer) {
+      _playerScreenState.setState(() {
+        // This will trigger UI updates for the progress bar
+      });
+    });
+  }
+
+  Future<void> _updateMetadata() async {
+    try {
+      final radioInfo = await _apiService.getRadioInfo();
+      _playerScreenState._updateState(radioInfo);
+      mediaItem.add(MediaItem(
+        id: 'radio_stream',
+        album: radioInfo['dj_name'],
+        title: radioInfo['title'],
+        artist: radioInfo['artist'],
+        duration: Duration(seconds: radioInfo['duration'] ?? 0),
+      ));
+    } catch (e) {
+      print('Error updating metadata: $e');
+    }
+  }
+
+  void _broadcastState(PlaybackEvent event) {
+    playbackState.add(playbackState.value.copyWith(
+      controls: [
+        MediaControl.pause,
+        MediaControl.play,
+        MediaControl.stop,
+      ],
+      systemActions: {
+        MediaAction.seek,
+        MediaAction.seekForward,
+        MediaAction.seekBackward,
+      },
+      androidCompactActionIndices: [0, 1, 2],
+      processingState: const {
+        ProcessingState.idle: AudioProcessingState.idle,
+        ProcessingState.loading: AudioProcessingState.loading,
+        ProcessingState.buffering: AudioProcessingState.buffering,
+        ProcessingState.ready: AudioProcessingState.ready,
+        ProcessingState.completed: AudioProcessingState.completed,
+      }[_player.processingState]!,
+      playing: _player.playing,
+      updatePosition: _player.position,
+      bufferedPosition: _player.bufferedPosition,
+      speed: _player.speed,
+    ));
+  }
+
+  @override
+  Future<void> play() async {
+    try {
+      await _player.play();
+      _playerScreenState.setState(() {
+        _playerScreenState.isPlaying = true;
+      });
+    } catch (e) {
+      print("Error playing: $e");
+    }
+  }
+
+  @override
+  Future<void> pause() async {
+    try {
+      await _player.pause();
+      _playerScreenState.setState(() {
+        _playerScreenState.isPlaying = false;
+      });
+    } catch (e) {
+      print("Error pausing: $e");
+    }
+  }
+
+  @override
+  Future<void> stop() async {
+    await _player.stop();
+    await _player.dispose();
+    _periodicUpdateTimer?.cancel();
+    _elapsedTimeTimer?.cancel();
+  }
+
+  Future<void> initialize() async {
+    try {
+      await _player.setUrl('https://relay0.r-a-d.io/main.mp3');
+      await _updateMetadata();
+    } catch (e) {
+      print("Error initializing audio player: $e");
+    }
+  }
+}
 
 class PlayerScreen extends StatefulWidget {
   @override
@@ -9,8 +130,7 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class PlayerScreenState extends State<PlayerScreen> {
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  final RadioApiService apiService = RadioApiService();
+  late AudioPlayerHandler _audioHandler;
   bool isPlaying = false;
   String currentArtist = 'Loading...';
   String currentTitle = 'Loading...';
@@ -18,119 +138,7 @@ class PlayerScreenState extends State<PlayerScreen> {
   int listenerCount = 0;
   String djImageUrl = '';
   Duration? currentTrackDuration;
-  String lastTrackId = '';
-  StreamSubscription<Duration>? _positionSubscription;
-  Timer? _periodicUpdateTimer;
-  Timer? _frequentUpdateTimer;
-  bool _isNearEndOfTrack = false;
   DateTime? currentTrackStartTime;
-  Timer? _elapsedTimeTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _initAudioPlayer();
-    fetchRadioInfo();
-    _startPeriodicUpdates();
-    _startElapsedTimeTimer();
-  }
-
-  void _startPeriodicUpdates() {
-    _periodicUpdateTimer = Timer.periodic(Duration(seconds: 10), (timer) {
-      fetchRadioInfo();
-    });
-  }
-
-  void _startFrequentUpdates() {
-    _frequentUpdateTimer?.cancel();
-    _frequentUpdateTimer = Timer.periodic(Duration(seconds: 5), (timer) {
-      fetchRadioInfo();
-    });
-  }
-
-  void _stopFrequentUpdates() {
-    _frequentUpdateTimer?.cancel();
-    _frequentUpdateTimer = null;
-  }
-
-  void _startElapsedTimeTimer() {
-    _elapsedTimeTimer = Timer.periodic(Duration(milliseconds: 500), (timer) {
-      setState(() {
-        // This will trigger a rebuild of the duration display
-      });
-    });
-  }
-
-  Future<void> _initAudioPlayer() async {
-    try {
-      await _audioPlayer.setUrl('https://relay0.r-a-d.io/main.mp3');
-      _audioPlayer.playerStateStream.listen((playerState) {
-        setState(() {
-          isPlaying = playerState.playing;
-        });
-      });
-
-      _positionSubscription = _audioPlayer.positionStream.listen((position) {
-        if (currentTrackDuration != null) {
-          final remainingTime = currentTrackDuration! - position;
-          if (remainingTime <= Duration(minutes: 1) && !_isNearEndOfTrack) {
-            _isNearEndOfTrack = true;
-            _startFrequentUpdates();
-          } else if (remainingTime > Duration(minutes: 1) && _isNearEndOfTrack) {
-            _isNearEndOfTrack = false;
-            _stopFrequentUpdates();
-          }
-        }
-        setState(() {
-          // Update UI
-        });
-      });
-
-      // Handle errors
-      _audioPlayer.playbackEventStream.listen((event) {}, onError: (Object e, StackTrace stackTrace) {
-        print('A stream error occurred: $e');
-      });
-
-      // Request audio focus
-      await _audioPlayer.setAudioSource(AudioSource.uri(Uri.parse('https://relay0.r-a-d.io/main.mp3')));
-    } catch (e) {
-      print("Error initializing audio player: $e");
-    }
-  }
-
-  Future<void> fetchRadioInfo() async {
-    try {
-      final radioInfo = await apiService.getRadioInfo();
-      final newTrackId = '${radioInfo['artist']}-${radioInfo['title']}';
-
-      setState(() {
-        currentArtist = radioInfo['artist'];
-        currentTitle = radioInfo['title'];
-        djName = radioInfo['dj_name'];
-        listenerCount = radioInfo['listener_count'];
-        djImageUrl = radioInfo['dj_image_url'];
-        currentTrackDuration = Duration(seconds: radioInfo['duration'] ?? 0);
-
-        if (newTrackId != lastTrackId) {
-          lastTrackId = newTrackId;
-          currentTrackStartTime = DateTime.fromMillisecondsSinceEpoch(radioInfo['start_time'] * 1000);
-          _isNearEndOfTrack = false;
-          _stopFrequentUpdates();
-        }
-      });
-    } catch (e) {
-      print('Error fetching radio info: $e');
-      setState(() {
-        currentArtist = 'Unable to load';
-        currentTitle = 'Unable to load';
-        djName = 'Unable to load';
-        listenerCount = 0;
-        djImageUrl = '';
-        currentTrackDuration = null;
-        lastTrackId = '';
-      });
-    }
-  }
 
   Duration _getElapsedTime() {
     if (currentTrackStartTime == null) return Duration.zero;
@@ -140,7 +148,8 @@ class PlayerScreenState extends State<PlayerScreen> {
   double _calculateProgress() {
     if (currentTrackStartTime == null || currentTrackDuration == null) return 0.0;
     final elapsed = _getElapsedTime();
-    return (elapsed.inMilliseconds / currentTrackDuration!.inMilliseconds).clamp(0.0, 1.0);
+    final progress = elapsed.inMilliseconds / currentTrackDuration!.inMilliseconds;
+    return progress.clamp(0.0, 1.0);
   }
 
   String _formatDuration(Duration duration) {
@@ -151,12 +160,65 @@ class PlayerScreenState extends State<PlayerScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _setupAudioHandler();
+  }
+
+  Future<void> _setupAudioHandler() async {
+    try {
+      _audioHandler = await AudioService.init(
+        builder: () => AudioPlayerHandler(this),
+        config: AudioServiceConfig(
+          androidNotificationChannelId: 'com.example.radio_app.channel.audio',
+          androidNotificationChannelName: 'Radio playback',
+          androidNotificationOngoing: true,
+          androidNotificationIcon: 'mipmap/launcher_icon',
+        ),
+      );
+      await _audioHandler.initialize();
+      
+      // Set up a periodic timer for UI updates
+      Timer.periodic(Duration(milliseconds: 500), (timer) {
+        if (mounted) {
+          setState(() {
+            // This will trigger a rebuild of the progress bar
+          });
+        }
+      });
+    } catch (e) {
+      print('Error setting up audio handler: $e');
+    }
+  }
+
+  void _handlePlayPause() async {
+    try {
+      if (isPlaying) {
+        await _audioHandler.pause();
+      } else {
+        await _audioHandler.play();
+      }
+    } catch (e) {
+      print("Error handling play/pause: $e");
+    }
+  }
+
+  void _updateState(Map<String, dynamic> radioInfo) {
+    setState(() {
+      currentArtist = radioInfo['artist'];
+      currentTitle = radioInfo['title'];
+      djName = radioInfo['dj_name'];
+      listenerCount = radioInfo['listener_count'];
+      djImageUrl = radioInfo['dj_image_url'];
+      currentTrackDuration = Duration(seconds: radioInfo['duration'] ?? 0);
+      currentTrackStartTime = DateTime.fromMillisecondsSinceEpoch(
+          (radioInfo['start_time'] ?? 0) * 1000);
+    });
+  }
+
+  @override
   void dispose() {
-    _positionSubscription?.cancel();
-    _periodicUpdateTimer?.cancel();
-    _frequentUpdateTimer?.cancel();
-    _elapsedTimeTimer?.cancel();
-    _audioPlayer.dispose();
+    _audioHandler.stop();
     super.dispose();
   }
 
@@ -261,19 +323,7 @@ class PlayerScreenState extends State<PlayerScreen> {
                       // Play/Pause button
                       Padding(
                         padding: EdgeInsets.only(top: 200),
-                        child: GestureDetector(
-                          onTap: () {
-                            if (isPlaying) {
-                              _audioPlayer.pause();
-                            } else {
-                              _audioPlayer.play();
-                            }
-                          },
-                          child: CustomPaint(
-                            size: Size(100, 100),
-                            painter: PlayPausePainter(isPlaying: isPlaying),
-                          ),
-                        ),
+                        child: _buildPlayPauseButton(),
                       ),
                       Spacer(),
                       // Track info and duration bar section
@@ -361,6 +411,19 @@ class PlayerScreenState extends State<PlayerScreen> {
         ),
       ),
       backgroundColor: Color(0xFF111111),
+    );
+  }
+
+  Widget _buildPlayPauseButton() {
+    return GestureDetector(
+      onTap: _handlePlayPause,
+      child: Container(
+        width: 100,
+        height: 100,
+        child: CustomPaint(
+          painter: PlayPausePainter(isPlaying: isPlaying),
+        ),
+      ),
     );
   }
 }
