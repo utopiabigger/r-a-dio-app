@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:audio_service/audio_service.dart';
 import 'package:radio_app/screens/player_screen.dart';
 import 'package:radio_app/config/theme.dart';
 

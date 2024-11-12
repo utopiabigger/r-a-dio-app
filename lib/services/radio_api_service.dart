@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ui' as ui;
 import 'package:http/http.dart' as http;
 
 class RadioApiService {
@@ -32,7 +31,7 @@ class RadioApiService {
         'listener_count': main['listeners'] ?? 0,
         'dj_image_url': djImageUrl,
         'duration': duration,
-        'start_time': main['start_time'], // Add this line
+        'start_time': main['start_time'],
       };
     } else {
       throw Exception('Failed to load radio info');

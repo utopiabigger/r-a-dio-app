@@ -9,7 +9,7 @@ class AudioPlayerHandler extends BaseAudioHandler {
   final RadioApiService _apiService = RadioApiService();
   Timer? _periodicUpdateTimer;
   Timer? _elapsedTimeTimer;
-  final _playerScreenState;
+  final PlayerScreenState _playerScreenState;
 
   AudioPlayerHandler(this._playerScreenState) {
     _player.playbackEventStream.listen(_broadcastState);
@@ -19,30 +19,24 @@ class AudioPlayerHandler extends BaseAudioHandler {
 
   void _setupPlaybackStateListener() {
     _player.playerStateStream.listen((playerState) {
-      _playerScreenState.setState(() {
-        _playerScreenState.isPlaying = playerState.playing;
-      });
+      _playerScreenState.updatePlayingState(playerState.playing);
     });
   }
 
   void _setupPeriodicUpdates() {
-    // More frequent updates for metadata
     _periodicUpdateTimer = Timer.periodic(Duration(seconds: 2), (timer) async {
       await _updateMetadata();
     });
 
-    // Very frequent updates for elapsed time
     _elapsedTimeTimer = Timer.periodic(Duration(milliseconds: 500), (timer) {
-      _playerScreenState.setState(() {
-        // This will trigger UI updates for the progress bar
-      });
+      _playerScreenState.updateUI();
     });
   }
 
   Future<void> _updateMetadata() async {
     try {
       final radioInfo = await _apiService.getRadioInfo();
-      _playerScreenState._updateState(radioInfo);
+      _playerScreenState.updateState(radioInfo);
       mediaItem.add(MediaItem(
         id: 'radio_stream',
         album: radioInfo['dj_name'],
@@ -86,9 +80,7 @@ class AudioPlayerHandler extends BaseAudioHandler {
   Future<void> play() async {
     try {
       await _player.play();
-      _playerScreenState.setState(() {
-        _playerScreenState.isPlaying = true;
-      });
+      _playerScreenState.updatePlayingState(true);
     } catch (e) {
       print("Error playing: $e");
     }
@@ -98,9 +90,7 @@ class AudioPlayerHandler extends BaseAudioHandler {
   Future<void> pause() async {
     try {
       await _player.pause();
-      _playerScreenState.setState(() {
-        _playerScreenState.isPlaying = false;
-      });
+      _playerScreenState.updatePlayingState(false);
     } catch (e) {
       print("Error pausing: $e");
     }
@@ -203,7 +193,7 @@ class PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  void _updateState(Map<String, dynamic> radioInfo) {
+  void updateState(Map<String, dynamic> radioInfo) {
     setState(() {
       currentArtist = radioInfo['artist'];
       currentTitle = radioInfo['title'];
@@ -214,6 +204,20 @@ class PlayerScreenState extends State<PlayerScreen> {
       currentTrackStartTime = DateTime.fromMillisecondsSinceEpoch(
           (radioInfo['start_time'] ?? 0) * 1000);
     });
+  }
+
+  void updatePlayingState(bool playing) {
+    setState(() {
+      isPlaying = playing;
+    });
+  }
+
+  void updateUI() {
+    if (mounted) {
+      setState(() {
+        // This will trigger a rebuild of the progress bar
+      });
+    }
   }
 
   @override
@@ -365,14 +369,16 @@ class PlayerScreenState extends State<PlayerScreen> {
                               ),
                             ),
                             // Progress bar
-                            Container(
-                              width: MediaQuery.of(context).size.width,
+                            Padding(
                               padding: EdgeInsets.symmetric(horizontal: 16),
-                              child: LinearProgressIndicator(
-                                value: _calculateProgress(),
-                                backgroundColor: Colors.grey[700],
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                                minHeight: 5,
+                              child: SizedBox(
+                                width: MediaQuery.of(context).size.width,
+                                child: LinearProgressIndicator(
+                                  value: _calculateProgress(),
+                                  backgroundColor: Colors.grey[700],
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                                  minHeight: 5,
+                                ),
                               ),
                             ),
                             SizedBox(height: 5),
@@ -417,7 +423,7 @@ class PlayerScreenState extends State<PlayerScreen> {
   Widget _buildPlayPauseButton() {
     return GestureDetector(
       onTap: _handlePlayPause,
-      child: Container(
+      child: SizedBox(
         width: 100,
         height: 100,
         child: CustomPaint(
